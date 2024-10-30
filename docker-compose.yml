@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  line_provider:
+    build:
+      context: ./line_provider
+    ports:
+      - "8001:8000"
+    networks:
+      - app-network
+
+  bet_maker:
+    build:
+      context: ./bet_maker
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/betdb
+    networks:
+      - app-network
+
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: betdb
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app-network:
+    driver: bridge
